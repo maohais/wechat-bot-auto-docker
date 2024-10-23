@@ -22,8 +22,8 @@ jobs:
       - name: Download wechat-bot.jar
         run: |
           # 下载 wechat-bot.jar 文件
-          curl -L -o wechat-bot.jar https://github.com/maohais/wechat-bot-auto-docker/releases/latest/download/wechat-bot.jar
-
+          curl -L -o wechat-bot.jar https://github.com/maohais/wechat-bot-auto-docker/releases/latest/download/wechat-bot.jar && ls
+          
       - name: Set up QEMU (for cross-platform builds)
         uses: docker/setup-qemu-action@v2
 
