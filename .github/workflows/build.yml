@@ -15,8 +15,8 @@ jobs:
 
       - name: Download gitee
         run: |
-          curl -L -o simfang.ttf https://gitee.com/ilooli/wechat-bot/raw/master/wechat-bot-implement/docker/simfang.ttf && curl -L -o Dockerfile https://gitee.com/ilooli/wechat-bot/raw/master/wechat-bot-implement/docker/Dockerfile
-
+          curl -L -o simfang.ttf https://gitee.com/ilooli/wechat-bot/raw/master/wechat-bot-implement/docker/simfang.ttf 
+      
       - name: Download wechat-bot.jar
         run: |
           curl -L -o wechat-bot.jar https://github.com/maohais/wechat-bot-auto-docker/releases/latest/download/wechat-bot.jar && ls
