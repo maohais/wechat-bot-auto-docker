@@ -28,6 +28,7 @@ jobs:
           GITEE_API_URL: "https://gitee.com/api/v5/repos/ilooli/wechat-bot/releases/latest"
           GITHUB_API_URL: "https://api.github.com/repos/maohais/wechat-bot-auto-docker/releases/latest"
         run: |
+          python <<EOF
           import requests
           from github import Github
           import os
@@ -74,3 +75,4 @@ jobs:
                   new_release.upload_asset(f.name)
           else:
               print("GitHub already has the latest version.")
+          EOF
