@@ -40,7 +40,7 @@ jobs:
           if gitee_response.status_code == 200:
               gitee_release = gitee_response.json()
               gitee_version = gitee_release['tag_name']
-              gitee_download_url = gitee_release['assets'][0]['browser_download_url']
+              gitee_assets = gitee_release['assets']  # 获取所有 assets（文件）
           else:
               raise Exception(f"Failed to fetch Gitee release: {gitee_response.status_code}")
 
@@ -57,13 +57,21 @@ jobs:
           if github_version is None or gitee_version > github_version:
               print(f"Gitee has a newer version: {gitee_version}. Uploading to GitHub...")
 
-              # 下载 Gitee 最新 release 文件
-              release_file = requests.get(gitee_download_url)
-              file_name = gitee_download_url.split('/')[-1]
-              with open(file_name, 'wb') as f:
-                  f.write(release_file.content)
+              # 下载 Gitee Release 中的每个文件
+              file_names = []
+              for asset in gitee_assets:
+                  asset_url = asset['browser_download_url']
+                  file_name = asset_url.split('/')[-1]
+                  file_names.append(file_name)
 
-              # 上传到 GitHub Release
+                  print(f"Downloading {file_name} from {asset_url}...")
+                  response = requests.get(asset_url, stream=True)
+                  with open(file_name, 'wb') as f:
+                      for chunk in response.iter_content(chunk_size=1024):
+                          if chunk:
+                              f.write(chunk)
+
+              # 创建新的 GitHub Release
               new_release = repo.create_git_release(
                   tag=gitee_version,
                   name=f"Release {gitee_version}",
@@ -72,9 +80,13 @@ jobs:
                   prerelease=False
               )
 
-              # 上传文件到 release
-              with open(file_name, 'rb') as f:
-                  new_release.upload_asset(f.name)
+              # 上传每个文件到 GitHub Release
+              for file_name in file_names:
+                  print(f"Uploading {file_name} to GitHub release...")
+                  with open(file_name, 'rb') as f:
+                      new_release.upload_asset(f.name)
+
+              print("All files uploaded successfully.")
           else:
               print("GitHub already has the latest version.")
           EOF
