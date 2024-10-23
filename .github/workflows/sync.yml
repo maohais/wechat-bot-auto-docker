@@ -1,4 +1,4 @@
-name: Sync Gitee Release to GitHub
+name: Sync Gitee Release to GitHub and Trigger Build
 
 on:
   schedule:
@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write # 确保有写入权限
+  actions: write # 允许触发其他工作流
 
 jobs:
   sync-release:
@@ -74,7 +75,7 @@ jobs:
               # 创建新的 GitHub Release
               new_release = repo.create_git_release(
                   tag=gitee_version,
-                  name=f"Release {gitee_version}",
+                  name=f"{gitee_version}",
                   message=f"Sync from Gitee version {gitee_version}",
                   draft=False,
                   prerelease=False
@@ -87,6 +88,21 @@ jobs:
                       new_release.upload_asset(f.name)
 
               print("All files uploaded successfully.")
+
+              # 触发同仓库下的 build.yml 工作流
+              print("Triggering the build workflow...")
+              trigger_build_workflow = requests.post(
+                  f"https://api.github.com/repos/{repo.owner.login}/{repo.name}/actions/workflows/build.yml/dispatches",
+                  headers={
+                      "Authorization": f"token {os.getenv('GITHUB_TOKEN')}",
+                      "Accept": "application/vnd.github.v3+json",
+                  },
+                  json={"ref": "main"}  # 触发 main 分支的 workflow_dispatch
+              )
+              if trigger_build_workflow.status_code == 204:
+                  print("Build workflow triggered successfully.")
+              else:
+                  raise Exception(f"Failed to trigger build workflow: {trigger_build_workflow.status_code}")
           else:
               print("GitHub already has the latest version.")
           EOF
