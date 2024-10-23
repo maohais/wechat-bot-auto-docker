@@ -14,5 +14,5 @@ WORKDIR /app
 # 请将jar包放倒与此文件同级目录下
 COPY wechat-bot.jar wechat-bot.jar
 VOLUME /app
-
+COPY wechat-bot.jar /app/wechat-bot.jar
 ENTRYPOINT ["java", "-jar", "/app/wechat-bot.jar"]
