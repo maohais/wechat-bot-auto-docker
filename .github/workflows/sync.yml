@@ -1,0 +1,76 @@
+name: Sync Gitee Release to GitHub
+
+on:
+  schedule:
+    - cron: '0 12 * * *' # 每天12:00 UTC运行，自动检查更新
+  workflow_dispatch: # 手动触发工作流
+
+jobs:
+  sync-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          pip install requests PyGithub
+
+      - name: Compare releases and upload if necessary
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # 用于发布release
+          GITEE_API_URL: "https://gitee.com/api/v5/repos/ilooli/wechat-bot/releases/latest"
+          GITHUB_API_URL: "https://api.github.com/repos/maohais/wechat-bot-auto-docker/releases/latest"
+        run: |
+          import requests
+          from github import Github
+          import os
+
+          # 获取 Gitee 最新 Release 版本
+          gitee_response = requests.get(os.getenv('GITEE_API_URL'))
+          if gitee_response.status_code == 200:
+              gitee_release = gitee_response.json()
+              gitee_version = gitee_release['tag_name']
+              gitee_download_url = gitee_release['assets'][0]['browser_download_url']
+          else:
+              raise Exception(f"Failed to fetch Gitee release: {gitee_response.status_code}")
+
+          # 获取 GitHub 最新 Release 版本
+          github = Github(os.getenv('GITHUB_TOKEN'))
+          repo = github.get_repo("maohais/wechat-bot-auto-docker")
+          try:
+              github_release = repo.get_latest_release()
+              github_version = github_release.tag_name
+          except:
+              github_version = None
+
+          # 比较版本号，如果 Gitee 上的版本更新或 GitHub 上没有 release，则同步 Gitee Release
+          if github_version is None or gitee_version > github_version:
+              print(f"Gitee has a newer version: {gitee_version}. Uploading to GitHub...")
+
+              # 下载 Gitee 最新 release 文件
+              release_file = requests.get(gitee_download_url)
+              file_name = gitee_download_url.split('/')[-1]
+              with open(file_name, 'wb') as f:
+                  f.write(release_file.content)
+
+              # 上传到 GitHub Release
+              new_release = repo.create_git_release(
+                  tag=gitee_version,
+                  name=f"Release {gitee_version}",
+                  message=f"Sync from Gitee version {gitee_version}",
+                  draft=False,
+                  prerelease=False
+              )
+
+              # 上传文件到 release
+              with open(file_name, 'rb') as f:
+                  new_release.upload_asset(f.name)
+          else:
+              print("GitHub already has the latest version.")
