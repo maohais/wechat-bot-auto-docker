@@ -17,8 +17,7 @@ jobs:
           echo "Latest release response: $response"
           
           # 从响应中提取下载链接和版本号
-          download_url=$(echo $response | jq -r '.assets[] | select(.name | endswith(".jar")) | .download_url' | head -n 1)
-          version=$(echo $response | jq -r '.tag_name')
+          download_url=https://gitee.com/ilooli/wechat-bot/releases/download/$response/wechat-bot.jar
           
           echo "Download URL: $download_url"
           echo "Version: $version"
