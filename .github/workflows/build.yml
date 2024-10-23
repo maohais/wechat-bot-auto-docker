@@ -14,11 +14,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Download simfang.ttf
+      - name: Download gitee
         run: |
-          # 下载 simfang.ttf 文件
-          curl -L -o simfang.ttf https://gitee.com/ilooli/wechat-bot/raw/master/wechat-bot-implement/docker/simfang.ttf
-
+          curl -L -o simfang.ttf https://gitee.com/ilooli/wechat-bot/raw/master/wechat-bot-implement/docker/simfang.ttf && curl -L -o Dockerfile https://gitee.com/ilooli/wechat-bot/raw/master/wechat-bot-implement/docker/Dockerfile
+          
       - name: Download wechat-bot.jar
         run: |
           # 下载 wechat-bot.jar 文件
