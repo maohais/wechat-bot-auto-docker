@@ -1,0 +1,63 @@
+name: Upload Latest Release JAR to GitHub
+on:
+  workflow_dispatch:  # 手动触发工作流
+  schedule:
+    - cron: '0 0 * * *'  # 每小时运行一次（可根据需要调整）
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Get latest release from Gitee
+        id: get_release
+        run: |
+          # 使用 Gitee API 获取最新的 Release
+          response=$(curl -s https://gitee.com/api/v5/repos/ilooli/wechat-bot/releases/latest)
+          echo "Latest release response: $response"
+          
+          # 从响应中提取下载链接和版本号
+          download_url=$(echo $response | jq -r '.assets[] | select(.name | endswith(".jar")) | .download_url' | head -n 1)
+          version=$(echo $response | jq -r '.tag_name')
+          
+          echo "Download URL: $download_url"
+          echo "Version: $version"
+          
+          # 设置输出变量
+          echo "::set-output name=download_url::$download_url"
+          echo "::set-output name=version::$version"
+      - name: Get latest release from GitHub
+        id: get_github_release
+        run: |
+          # 使用 GitHub API 获取最新的 Release
+          response=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest)
+          echo "Latest release response: $response"
+          
+          # 从响应中提取版本号
+          github_version=$(echo $response | jq -r '.tag_name')
+          echo "GitHub Version: $github_version"
+          
+          # 设置输出变量
+          echo "::set-output name=version::$github_version"
+      - name: Compare versions and download JAR if necessary
+        id: compare_versions
+        run: |
+          gitee_version=${{ steps.get_release.outputs.version }}
+          github_version=${{ steps.get_github_release.outputs.version }}
+          
+          if [ "$(printf '%s\n' "$gitee_version" "$github_version" | sort -V | head -n 1)" = "$github_version" ]; then
+            echo "Gitee version is newer. Downloading JAR."
+            curl -L -o myapp.jar ${{ steps.get_release.outputs.download_url }}
+            echo "::set-output name=should_upload::true"
+          else
+            echo "Gitee version is not newer. Skipping download."
+            echo "::set-output name=should_upload::false"
+          fi
+      - name: Upload JAR to GitHub Release
+        if: steps.compare_versions.outputs.should_upload == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag: ${{ steps.get_release.outputs.version }}  # 使用 Gitee 上的版本号作为标签
+          files: wechat-bot.jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # GitHub 自动提供的 token
