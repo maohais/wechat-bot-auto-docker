@@ -1,10 +1,9 @@
 name: Build and Push Docker Image
 
 on:
-  # 手动触发工作流
-  workflow_dispatch: 
-  repository_dispatch: 
-    types: build_docker_image
+  workflow_dispatch:  
+  repository_dispatch:   
+    types: build_docker_image 
 
 jobs:
   build-and-push:
@@ -17,12 +16,17 @@ jobs:
       - name: Download gitee
         run: |
           curl -L -o simfang.ttf https://gitee.com/ilooli/wechat-bot/raw/master/wechat-bot-implement/docker/simfang.ttf && curl -L -o Dockerfile https://gitee.com/ilooli/wechat-bot/raw/master/wechat-bot-implement/docker/Dockerfile
-          
+
       - name: Download wechat-bot.jar
         run: |
-          # 下载 wechat-bot.jar 文件
           curl -L -o wechat-bot.jar https://github.com/maohais/wechat-bot-auto-docker/releases/latest/download/wechat-bot.jar && ls
-          
+
+      - name: Get latest release version
+        id: get_release
+        run: |
+          VERSION=$(curl -s https://api.github.com/repos/maohais/wechat-bot-auto-docker/releases/latest | jq -r .tag_name)
+          echo "LATEST_VERSION=$VERSION" >> $GITHUB_ENV
+
       - name: Set up QEMU (for cross-platform builds)
         uses: docker/setup-qemu-action@v2
 
@@ -44,4 +48,4 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/wechat-bot:latest
-
+            ${{ secrets.DOCKERHUB_USERNAME }}/wechat-bot:${{ env.LATEST_VERSION }}
